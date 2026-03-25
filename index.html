@@ -91,11 +91,11 @@ body{
 /* ── 感情グリッド ── */
 .ono-grid{
   display:grid;grid-template-columns:repeat(3,1fr);
-  gap:.85rem;max-width:390px;width:100%;margin:0 auto 3rem;
+  gap:clamp(.4rem,.85rem,1rem);max-width:390px;width:100%;margin:0 auto 3rem;
 }
 .ono-btn{
   background:#fff;border:2.5px solid #d8ccc0;
-  border-radius:22px;padding:1.5rem .6rem 1.3rem;
+  border-radius:22px;padding:clamp(.8rem,1.5rem,1.5rem) .4rem clamp(.7rem,1.3rem,1.3rem);
   cursor:pointer;transition:all .28s;
   display:flex;align-items:center;justify-content:center;
   box-shadow:3px 3px 0 rgba(0,0,0,.1);
@@ -105,7 +105,7 @@ body{
   background:#f0fbe4;border-color:var(--c3);border-width:3px;
   box-shadow:3px 3px 0 rgba(100,180,60,.35);transform:scale(1.07);
 }
-.ono-w{font-family:'Shippori Mincho',serif;font-size:1.3rem;color:var(--ink);letter-spacing:.04em;}
+.ono-w{font-family:'Shippori Mincho',serif;font-size:clamp(.82rem,3.6vw,1.3rem);color:var(--ink);letter-spacing:.01em;white-space:nowrap;}
 
 /* ── カラーグリッド ── */
 .color-grid{
@@ -275,7 +275,13 @@ body{
   text-shadow:2px 3px 0 rgba(0,0,0,.1);
 }
 .f-hdr p{font-size:.7rem;color:#888;letter-spacing:.1em;}
-#fCv{display:block;width:100%;position:relative;z-index:5;cursor:pointer;}
+#fCv-wrap{
+  width:100%;overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;flex-shrink:0;
+}
+#fCv-wrap::-webkit-scrollbar{display:none;}
+#fCv{display:block;position:relative;z-index:5;cursor:pointer;}
 .f-actions{
   position:relative;z-index:10;
   display:flex;gap:.9rem;margin:1.4rem auto 2.5rem;
@@ -490,7 +496,7 @@ body{
     <h2 id="forestTitle">みんなの森</h2>
     <p id="fCount">木が集まっています</p>
   </div>
-  <canvas id="fCv"></canvas>
+  <div id="fCv-wrap"><canvas id="fCv"></canvas></div>
   <div class="f-actions">
     <button class="f-btn" onclick="go('s-result')">← あなたの木へ</button>
   </div>
@@ -1384,16 +1390,17 @@ function runForest(){
   document.getElementById('fCount').textContent=`${all.length}本の木が育っています`;
 
   const cv=document.getElementById('fCv');
-  const W=cv.width=Math.min(window.innerWidth,900);
-  const H=cv.height=Math.round(W*.68);
+  const SLOT=Math.max(80, Math.round(window.innerWidth/5));
+  const W=cv.width=Math.max(window.innerWidth, all.length*SLOT);
+  const H=cv.height=Math.round(Math.min(window.innerHeight*.58,400));
 
   forestLayout=all.map((tree,i)=>{
-    const xr=(i+1)/(all.length+1);
-    const bx=xr*W;
+    const bx=(i+.5)*SLOT;
+    const xr=bx/W;
     const gi=xr*36;
     const by=H*(.78+Math.sin(gi*.5+2)*.012+Math.cos(gi*.8)*.008);
-    const sc=.62+((i*7)%5)*.055;
-    const tH=H*(.13+((i*3)%4)*.022)*sc;
+    const sc=.72+((i*7)%5)*.06;
+    const tH=H*(.22+((i*3)%4)*.032)*sc;
     const lR=tH*.52;
     return {tree,bx,by,tH,lR,i};
   });
@@ -1444,8 +1451,8 @@ function runForest(){
       ctx.globalAlpha=tw; ctx.fill(); ctx.globalAlpha=1;
     }
 
-    // 太陽のやわらかい光
-    const mx=W*.87,my=H*.09,mr=H*.055;
+    // 太陽のやわらかい光（スクロール開始位置に固定）
+    const mx=Math.min(W*.87, window.innerWidth*.88),my=H*.09,mr=H*.055;
     const pulse=1+.05*Math.sin(t*.015);
     const mg=ctx.createRadialGradient(mx,my,0,mx,my,mr*4*pulse);
     mg.addColorStop(0,'rgba(255,220,60,.28)');
