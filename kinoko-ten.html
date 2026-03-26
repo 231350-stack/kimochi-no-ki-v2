@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>木木木展 - 木のコドモ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
+  :root {
+    --gb-darkest: #0f380f;
+    --gb-dark: #306230;
+    --gb-light: #8bac0f;
+    --gb-lightest: #9bbc0f;
+    --gb-screen-bg: #9bbc0f;
+    --gb-body: #c8c8a0;
+    --gb-shadow: #0a280a;
+    --gb-button: #1a1a2e;
+    --gb-button-ab: #8b1a4a;
+    --gb-highlight: #e8f0a0;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DotGothic16', monospace;
+    overflow: hidden;
+  }
+
+  /* ========== GAMEBOY BODY ========== */
+  .gb-body {
+    width: 360px;
+    max-width: 100vw;
+    background: var(--gb-body);
+    border-radius: 12px 12px 40% 40% / 12px 12px 30px 30px;
+    padding: 20px 20px 30px;
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.6),
+      inset 0 -4px 8px rgba(0,0,0,0.3),
+      0 8px 32px rgba(0,0,0,0.8),
+      0 2px 4px rgba(0,0,0,0.4);
+    position: relative;
+    user-select: none;
+  }
+
+  /* ========== SCREEN AREA ========== */
+  .gb-screen-frame {
+    background: var(--gb-darkest);
+    border-radius: 8px 8px 4px 4px;
+    padding: 16px 16px 12px;
+    margin-bottom: 12px;
+    box-shadow:
+      inset 0 4px 12px rgba(0,0,0,0.8),
+      inset 0 0 0 2px #1a1a1a;
+    position: relative;
+  }
+
+  .gb-screen-label {
+    text-align: center;
+    color: var(--gb-light);
+    font-size: 9px;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .gb-screen {
+    background: var(--gb-screen-bg);
+    width: 100%;
+    aspect-ratio: 10/9;
+    border-radius: 3px;
+    box-shadow:
+      inset 0 0 0 2px var(--gb-dark),
+      inset 0 2px 8px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+
+  /* ========== SCENES ========== */
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 10px;
+  }
+  .scene.active { display: flex; }
+
+  /* TITLE SCENE */
+  #scene-title {
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--gb-screen-bg);
+  }
+
+  .title-pixel-art {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 1px;
+    width: 128px;
+    height: 128px;
+    margin-bottom: 8px;
+  }
+
+  .title-logo {
+    color: var(--gb-darkest);
+    font-size: 22px;
+    letter-spacing: 4px;
+    text-shadow: 2px 2px 0 var(--gb-dark);
+    animation: blink-slow 2s step-end infinite;
+  }
+
+  .title-sub {
+    color: var(--gb-dark);
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  .press-start {
+    color: var(--gb-darkest);
+    font-size: 11px;
+    animation: blink 1s step-end infinite;
+    margin-top: 12px;
+  }
+
+  /* SELECT SCENE */
+  #scene-select {
+    background: var(--gb-screen-bg);
+  }
+
+  .scene-header {
+    color: var(--gb-darkest);
+    font-size: 11px;
+    text-align: center;
+    border-bottom: 2px solid var(--gb-dark);
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+  }
+
+  .kodomo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    flex: 1;
+  }
+
+  .kodomo-card {
+    background: var(--gb-light);
+    border: 2px solid var(--gb-dark);
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px;
+    cursor: pointer;
+    transition: all 0.05s;
+    gap: 3px;
+  }
+
+  .kodomo-card:active {
+    transform: scale(0.95);
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+  }
+
+  .kodomo-card.selected {
+    background: var(--gb-darkest);
+    border-color: var(--gb-lightest);
+  }
+
+  .kodomo-sprite {
+    width: 36px;
+    height: 36px;
+    image-rendering: pixelated;
+  }
+
+  .kodomo-name {
+    font-size: 9px;
+    color: var(--gb-darkest);
+    text-align: center;
+  }
+
+  .kodomo-card.selected .kodomo-name {
+    color: var(--gb-lightest);
+  }
+
+  /* MAIN SCENE */
+  #scene-main {
+    background: var(--gb-screen-bg);
+    gap: 6px;
+  }
+
+  .main-name-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--gb-darkest);
+    border-bottom: 1px solid var(--gb-dark);
+    padding-bottom: 3px;
+  }
+
+  .heart-display {
+    display: flex;
+    gap: 2px;
+  }
+
+  .heart {
+    width: 8px;
+    height: 8px;
+    background: var(--gb-darkest);
+    clip-path: polygon(50% 90%, 0% 35%, 15% 0%, 50% 20%, 85% 0%, 100% 35%);
+    transition: background 0.3s;
+  }
+
+  .heart.empty {
+    background: var(--gb-light);
+    border: 1px solid var(--gb-dark);
+  }
+
+  .main-character-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .main-sprite {
+    width: 80px;
+    height: 80px;
+    image-rendering: pixelated;
+    transition: transform 0.1s;
+  }
+
+  .main-sprite.wiggle {
+    animation: wiggle 0.4s ease;
+  }
+
+  /* particle effects */
+  .particle {
+    position: absolute;
+    font-size: 14px;
+    pointer-events: none;
+    animation: float-up 1s ease forwards;
+  }
+
+  /* MESSAGE WINDOW */
+  .msg-window {
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-darkest);
+    border-radius: 3px;
+    padding: 6px 8px;
+    min-height: 52px;
+    position: relative;
+    font-size: 11px;
+    color: var(--gb-darkest);
+    line-height: 1.6;
+  }
+
+  .msg-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 10px;
+    background: var(--gb-darkest);
+    animation: blink 0.6s step-end infinite;
+    margin-left: 2px;
+    vertical-align: bottom;
+  }
+
+  /* UNLOCK BANNER */
+  .unlock-banner {
+    display: none;
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    font-size: 10px;
+    text-align: center;
+    padding: 4px;
+    border-radius: 2px;
+    animation: blink-slow 1s step-end infinite;
+  }
+
+  .unlock-banner.show { display: block; }
+
+  /* ========== CONTROLS ========== */
+  .gb-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    margin-bottom: 8px;
+  }
+
+  /* D-PAD */
+  .dpad {
+    width: 80px;
+    height: 80px;
+    position: relative;
+  }
+
+  .dpad-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 28px; height: 28px;
+    background: #555;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+
+  /* FACE BUTTONS */
+  .face-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 32px);
+    grid-template-rows: repeat(2, 32px);
+    gap: 4px;
+  }
+
+  .btn-ab {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gb-button-ab);
+    box-shadow:
+      0 3px 0 #5a0e2e,
+      0 4px 8px rgba(0,0,0,0.4);
+    color: #f0c0d0;
+    font-family: 'DotGothic16', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.05s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-ab:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #5a0e2e, 0 1px 4px rgba(0,0,0,0.4);
+  }
+
+  .btn-ab.empty {
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  /* ACTION BUTTONS ROW */
+  .action-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 0 4px;
+    margin-bottom: 6px;
+  }
+
+  .action-btn {
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    border: none;
+    border-radius: 3px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--gb-shadow);
+    transition: all 0.05s;
+    white-space: nowrap;
+  }
+
+  .action-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 var(--gb-shadow);
+  }
+
+  .action-btn.special {
+    background: var(--gb-dark);
+    color: var(--gb-lightest);
+  }
+
+  /* VOICE INPUT */
+  .voice-row {
+    display: flex;
+    gap: 4px;
+    padding: 0 4px;
+    margin-bottom: 6px;
+  }
+
+  .voice-input {
+    flex: 1;
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-darkest);
+    border-radius: 3px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    padding: 5px 8px;
+    color: var(--gb-darkest);
+    outline: none;
+  }
+
+  .voice-input::placeholder { color: var(--gb-dark); }
+
+  .voice-send {
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    border: none;
+    border-radius: 3px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--gb-shadow);
+    transition: all 0.05s;
+  }
+
+  .voice-send:active {
+    transform: translateY(3px);
+    box-shadow: none;
+  }
+
+  /* START/SELECT */
+  .gb-start-select {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .btn-small {
+    background: #888;
+    border: none;
+    border-radius: 4px;
+    width: 40px;
+    height: 10px;
+    transform: rotate(-20deg);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    cursor: pointer;
+    font-family: 'DotGothic16', monospace;
+    font-size: 8px;
+    color: var(--gb-body);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* DOWNLOAD CARD */
+  .card-download-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-download-overlay.show { display: flex; }
+
+  .seed-card {
+    width: 240px;
+    background: var(--gb-lightest);
+    border: 4px solid var(--gb-darkest);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    font-family: 'DotGothic16', monospace;
+  }
+
+  .seed-card-title {
+    font-size: 14px;
+    color: var(--gb-darkest);
+    margin-bottom: 8px;
+  }
+
+  .seed-card-art {
+    font-size: 48px;
+    margin: 8px 0;
+  }
+
+  .seed-card-msg {
+    font-size: 10px;
+    color: var(--gb-dark);
+    line-height: 1.8;
+  }
+
+  .download-btn {
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    border: none;
+    font-family: 'DotGothic16', monospace;
+    font-size: 13px;
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--gb-shadow);
+  }
+
+  .close-btn {
+    background: transparent;
+    color: var(--gb-light);
+    border: 2px solid var(--gb-light);
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  /* ========== ANIMATIONS ========== */
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  @keyframes blink-slow {
+    0%,49% { opacity: 1; }
+    50%,100% { opacity: 0; }
+  }
+
+  @keyframes wiggle {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-6px) rotate(-5deg); }
+    40% { transform: translateX(6px) rotate(5deg); }
+    60% { transform: translateX(-4px) rotate(-3deg); }
+    80% { transform: translateX(4px) rotate(3deg); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes float-up {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(1.4); }
+  }
+
+  @keyframes screen-flash {
+    0%,100% { background: var(--gb-screen-bg); }
+    50% { background: var(--gb-lightest); }
+  }
+
+  .screen-flash { animation: screen-flash 0.3s; }
+
+  /* pixel tree decorations */
+  .pixel-tree {
+    font-size: 10px;
+    color: var(--gb-dark);
+    position: absolute;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="gb-body">
+
+  <!-- SCREEN -->
+  <div class="gb-screen-frame">
+    <div class="gb-screen-label">◂ DOT GARDEN ▸</div>
+    <div class="gb-screen" id="screen">
+
+      <!-- TITLE SCENE -->
+      <div class="scene active" id="scene-title">
+        <div class="pixel-tree" style="top:8px;left:8px">🌱</div>
+        <div class="pixel-tree" style="top:8px;right:8px">🌿</div>
+        <div class="title-logo">木木木</div>
+        <div class="title-sub">木のコドモたちが<br>まってるよ</div>
+        <div class="press-start">▶ タップしてはじめる</div>
+        <div class="pixel-tree" style="bottom:8px;left:12px">🍃</div>
+        <div class="pixel-tree" style="bottom:8px;right:12px">🌱</div>
+      </div>
+
+      <!-- SELECT SCENE -->
+      <div class="scene" id="scene-select">
+        <div class="scene-header">▶ だれとあそぶ？</div>
+        <div class="kodomo-grid" id="kodomo-grid">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- MAIN SCENE -->
+      <div class="scene" id="scene-main">
+        <div class="main-name-bar">
+          <span id="current-name">???</span>
+          <div class="heart-display" id="hearts"></div>
+        </div>
+        <div class="main-character-area" id="char-area">
+          <canvas class="main-sprite" id="main-sprite" width="80" height="80"></canvas>
+        </div>
+        <div class="msg-window" id="msg-window">
+          <span id="msg-text"></span><span class="msg-cursor"></span>
+        </div>
+        <div class="unlock-banner" id="unlock-banner">
+          🌱 タネカードがもらえる！
+        </div>
+      </div>
+
+    </div><!-- /gb-screen -->
+  </div><!-- /gb-screen-frame -->
+
+  <!-- CONTROLS -->
+  <div class="gb-controls">
+    <div class="dpad">
+      <div class="dpad-center"></div>
+    </div>
+    <div class="face-buttons">
+      <div class="btn-ab empty"></div>
+      <button class="btn-ab" id="btn-b" onclick="handleBack()">B</button>
+      <button class="btn-ab" id="btn-a" onclick="handleA()">A</button>
+      <div class="btn-ab empty"></div>
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="action-row" id="action-row" style="display:none">
+    <button class="action-btn" onclick="doAction('water')">水をあげる</button>
+    <button class="action-btn" onclick="doAction('food')">肥料をあげる</button>
+    <button class="action-btn" onclick="doAction('pet')">撫でる</button>
+    <button class="action-btn" onclick="doAction('poke')">つつく</button>
+  </div>
+
+  <!-- VOICE INPUT -->
+  <div class="voice-row" id="voice-row" style="display:none">
+    <input class="voice-input" id="voice-input" type="text" placeholder="こえをかける…" maxlength="30">
+    <button class="voice-send" onclick="doAction('voice')">▶</button>
+  </div>
+
+
+
+</div><!-- /gb-body -->
+
+<!-- CARD OVERLAY -->
+<div class="card-download-overlay" id="card-overlay">
+  <div class="seed-card" id="seed-card">
+    <div class="seed-card-title">🌱 タネカード 🌱</div>
+    <div class="seed-card-art" id="card-art">🌿</div>
+    <div class="seed-card-msg" id="card-msg">
+      あなたにそだてられた<br>木のコドモより
+    </div>
+  </div>
+  <button class="download-btn" onclick="downloadCard()">📥 ダウンロード</button>
+  <button class="close-btn" onclick="closeCard()">✕ とじる</button>
+</div>
+
+<script>
+// ========== DATA ==========
+const KODOMO = [
+  {
+    id: 'ai',
+    name: 'あいの木',
+    emoji: '🌿',
+    color: '#4a7a4a',
+    personality: 'やさしい・のんびりや',
+    messages: {
+      water: 'つめたい！きもちいい〜',
+      food: 'おいしい！ありがとう！',
+      pet: 'なになに？うれしいなあ',
+      poke: 'わあ！どうしたの？いっしょに あそんでくれる？',
+      voice: 'たくさんの あいを ありがとう！',
+    }
+  },
+  {
+    id: 'ikari',
+    name: 'いかりの木',
+    emoji: '🔥',
+    color: '#8a3a1a',
+    personality: 'おこりんぼ・ストイック',
+    messages: {
+      water: 'うお！きゅうにかけるなよな。びっくりするぜ',
+      food: '…ありがとな',
+      pet: 'やめろよ！はずかしいだろ',
+      poke: 'どうしたんだ？ケンカか？',
+      voice: 'もうすこし ここにいても いいんだぜ',
+    }
+  },
+  {
+    id: 'yume',
+    name: 'ゆめの木',
+    emoji: '🌙',
+    color: '#5a5a9a',
+    personality: '無気力・夢見がち',
+    messages: {
+      water: 'ぬあ〜？あめが ふってきた〜',
+      food: 'おいし〜 うれし〜',
+      pet: 'いいねえ〜 もっとなでて〜',
+      poke: 'んん？いま つついたのは きみ？',
+      voice: 'ねむくなるまで おはなし しようよ〜',
+    }
+  },
+  {
+    id: 'kibou',
+    name: 'きぼうの木',
+    emoji: '☀️',
+    color: '#9a7a1a',
+    personality: '元気・ポジティブ',
+    messages: {
+      water: 'きゃあ！つめたい！きもちい〜',
+      food: 'おいしすぎるー！もっと ちょうだい！',
+      pet: 'もっと なでてー！きみのては あったかいね！',
+      poke: 'ふふふ！くすぐったいよ〜！',
+      voice: 'きみの ことばって キラキラしてる！',
+    }
+  },
+  {
+    id: 'shinjitsu',
+    name: 'しんじつの木',
+    emoji: '⭐',
+    color: '#3a5a7a',
+    personality: '真面目・敬語',
+    messages: {
+      water: 'ありがとう ございます。きもちいいです',
+      food: 'これは おいしいですね',
+      pet: 'なんといえば いいのか…。フシギな きぶんです',
+      poke: 'ちょっと おどろきました。なにか よう でしょうか',
+      voice: 'あなたは すなおな かたなんですね',
+    }
+  },
+];
+
+const PARTICLES = {
+  water: '💧',
+  food: '✨',
+  pet: '💚',
+  poke: '❗',
+  voice: '💬',
+};
+
+const SEED_MESSAGES = [
+  'きみといっしょにいられて\nうれしかったよ',
+  'また会いにきてね\nまってるから',
+  'きみのこえがすきだよ\nずっとわすれないからね',
+  'ちいさなタネだけど\nきっとおおきくなるよ',
+];
+
+// ========== STATE ==========
+let currentScene = 'title';
+let selectedKodomo = null;
+let actionCount = 0;
+let unlocked = false;
+let msgTyping = null;
+
+// ========== PIXEL ART RENDERER ==========
+const BASE_SPRITE = [
+  [3,3,3,3,3,0,2,1,1,2,1,3,3,3,3,3],
+  [3,3,3,3,3,0,2,2,2,2,0,3,3,3,3,3],
+  [3,3,3,3,3,3,0,2,2,0,3,3,3,3,3,3],
+  [3,3,3,3,3,0,2,2,2,2,0,3,3,3,3,3],
+  [3,3,3,0,1,2,2,2,2,2,2,1,0,3,3,3],
+  [3,0,2,2,2,2,2,2,2,2,2,2,2,2,0,3],
+  [3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+  [0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0],
+  [3,1,2,2,2,2,2,2,2,2,2,2,2,2,1,3],
+  [3,3,0,1,1,1,1,1,1,1,1,1,1,0,3,3],
+  [3,3,3,3,1,2,2,2,2,2,2,1,3,3,3,3],
+  [3,3,0,1,2,2,2,3,3,2,2,2,1,0,3,3],
+  [3,0,2,2,2,2,2,2,2,2,2,2,2,2,0,3],
+  [3,3,1,2,2,2,2,2,2,2,2,2,2,1,3,3],
+  [3,3,3,1,2,2,2,2,2,2,2,2,2,3,3,3],
+  [3,3,3,0,1,1,1,2,2,1,1,1,0,3,3,3],
+  [3,3,3,0,2,2,2,1,1,2,2,2,0,3,3,3],
+  [3,3,3,1,2,3,3,1,1,3,3,3,1,3,3,3],
+  [3,3,3,1,1,2,2,1,1,2,2,1,1,3,3,3]
+];
+
+// キャラクターごとのGBカラーパレット [darkest, dark, light, bg=transparent]
+const CHAR_PALETTES = {
+  ai:        ['#1a4a2a','#3a8a4a','#8acc6a','#9bbc0f'],
+  ikari:     ['#4a1a0a','#8a3a1a','#cc7a4a','#9bbc0f'],
+  yume:      ['#1a1a4a','#3a3a8a','#7a7acc','#9bbc0f'],
+  kibou:     ['#4a3a0a','#8a6a1a','#ccaa4a','#9bbc0f'],
+  shinjitsu: ['#1a3a4a','#2a6a7a','#5aaabc','#9bbc0f'],
+};
+
+function drawKodomo(canvas, kodomo, size = 80) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+
+  const palette = CHAR_PALETTES[kodomo.id] || ['#0f380f','#306230','#8bac0f','#9bbc0f'];
+  const ROWS = BASE_SPRITE.length;
+  const COLS = BASE_SPRITE[0].length;
+  const pw = size / COLS;
+  const ph = size / ROWS;
+
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const idx = BASE_SPRITE[row][col];
+      if (idx === 3) continue; // transparent
+      ctx.fillStyle = palette[idx];
+      ctx.fillRect(col * pw, row * ph, pw + 0.5, ph + 0.5);
+    }
+  }
+}
+
+// ========== SCENE TRANSITIONS ==========
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  document.getElementById('scene-' + id).classList.add('active');
+  currentScene = id;
+
+  const actionRow = document.getElementById('action-row');
+  const voiceRow = document.getElementById('voice-row');
+
+  if (id === 'main') {
+    actionRow.style.display = 'flex';
+    voiceRow.style.display = 'flex';
+  } else {
+    actionRow.style.display = 'none';
+    voiceRow.style.display = 'none';
+  }
+}
+
+// ========== TITLE ==========
+document.getElementById('scene-title').addEventListener('click', () => {
+  if (currentScene === 'title') goToSelect();
+});
+
+function goToSelect() {
+  const grid = document.getElementById('kodomo-grid');
+  grid.innerHTML = '';
+  KODOMO.forEach((k, i) => {
+    const card = document.createElement('div');
+    card.className = 'kodomo-card';
+    card.innerHTML = `
+      <span style="font-size:24px">${k.emoji}</span>
+      <span class="kodomo-name">${k.name}</span>
+    `;
+    card.addEventListener('click', () => selectKodomo(k));
+    grid.appendChild(card);
+  });
+  showScene('select');
+}
+
+function selectKodomo(k) {
+  selectedKodomo = k;
+  actionCount = 0;
+  unlocked = false;
+
+  document.getElementById('current-name').textContent = k.name;
+
+  // draw sprite
+  const canvas = document.getElementById('main-sprite');
+  drawKodomo(canvas, k);
+
+  // hearts
+  const hearts = document.getElementById('hearts');
+  hearts.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const h = document.createElement('div');
+    h.className = 'heart empty';
+    h.id = `heart-${i}`;
+    hearts.appendChild(h);
+  }
+
+  setMsg(`${k.name}「よろしくね！なにかしてくれる？」`);
+  document.getElementById('unlock-banner').classList.remove('show');
+
+  showScene('main');
+}
+
+// ========== MESSAGE ==========
+function setMsg(text) {
+  if (msgTyping) clearInterval(msgTyping);
+  const el = document.getElementById('msg-text');
+  el.textContent = '';
+  let i = 0;
+  msgTyping = setInterval(() => {
+    if (i < text.length) {
+      el.textContent += text[i++];
+    } else {
+      clearInterval(msgTyping);
+      msgTyping = null;
+    }
+  }, 40);
+}
+
+// ========== ACTIONS ==========
+function doAction(type) {
+  if (!selectedKodomo) return;
+  if (msgTyping) {
+    clearInterval(msgTyping);
+    msgTyping = null;
+    document.getElementById('msg-text').textContent = '';
+  }
+
+  let msg = selectedKodomo.messages[type] || 'うれしいな〜！';
+
+  if (type === 'voice') {
+    const input = document.getElementById('voice-input');
+    const val = input.value.trim();
+    if (!val) return;
+    msg = `${selectedKodomo.name}「${msg}」`;
+    input.value = '';
+  } else {
+    msg = `${selectedKodomo.name}「${msg}」`;
+  }
+
+  setMsg(msg);
+
+  // wiggle sprite
+  const sprite = document.getElementById('main-sprite');
+  sprite.classList.remove('wiggle');
+  requestAnimationFrame(() => {
+    sprite.classList.add('wiggle');
+    sprite.addEventListener('animationend', () => sprite.classList.remove('wiggle'), { once: true });
+  });
+
+  // particle
+  spawnParticle(PARTICLES[type] || '✨');
+
+  // screen flash
+  const screen = document.getElementById('screen');
+  screen.classList.add('screen-flash');
+  setTimeout(() => screen.classList.remove('screen-flash'), 300);
+
+  // count & hearts
+  actionCount++;
+  updateHearts();
+
+  // unlock at 5 actions
+  if (actionCount >= 5 && !unlocked) {
+    unlocked = true;
+    setTimeout(() => {
+      document.getElementById('unlock-banner').classList.add('show');
+    }, 1000);
+  }
+}
+
+function updateHearts() {
+  const filled = Math.min(actionCount, 5);
+  for (let i = 0; i < 5; i++) {
+    const h = document.getElementById(`heart-${i}`);
+    if (h) h.className = i < filled ? 'heart' : 'heart empty';
+  }
+}
+
+function spawnParticle(emoji) {
+  const area = document.getElementById('char-area');
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.textContent = emoji;
+  p.style.left = (30 + Math.random() * 40) + '%';
+  p.style.top = (20 + Math.random() * 30) + '%';
+  area.appendChild(p);
+  p.addEventListener('animationend', () => p.remove());
+}
+
+// ========== BUTTONS ==========
+function handleA() {
+  if (currentScene === 'title') goToSelect();
+  else if (currentScene === 'select') { /* no-op */ }
+  else if (currentScene === 'main' && unlocked) showCardOverlay();
+}
+
+function handleBack() {
+  if (currentScene === 'main') {
+    showScene('select');
+  } else if (currentScene === 'select') {
+    showScene('title');
+  }
+}
+
+function handleStart() {
+  if (currentScene === 'main' && unlocked) showCardOverlay();
+}
+
+function handleSelect() {
+  if (currentScene === 'main') {
+    showScene('select');
+  }
+}
+
+// ========== CARD ==========
+function showCardOverlay() {
+  if (!selectedKodomo) return;
+  document.getElementById('card-art').textContent = selectedKodomo.emoji;
+  const msg = SEED_MESSAGES[Math.floor(Math.random() * SEED_MESSAGES.length)];
+  document.getElementById('card-msg').innerHTML =
+    `${selectedKodomo.name}より<br><br>${msg.replace(/\n/g, '<br>')}`;
+  document.getElementById('card-overlay').classList.add('show');
+}
+
+function closeCard() {
+  document.getElementById('card-overlay').classList.remove('show');
+}
+
+function downloadCard() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 480;
+  canvas.height = 640;
+  const ctx = canvas.getContext('2d');
+
+  // background
+  ctx.fillStyle = '#9bbc0f';
+  ctx.fillRect(0, 0, 480, 640);
+
+  // border
+  ctx.strokeStyle = '#0f380f';
+  ctx.lineWidth = 12;
+  ctx.strokeRect(16, 16, 448, 608);
+  ctx.lineWidth = 4;
+  ctx.strokeRect(28, 28, 424, 584);
+
+  // title
+  ctx.fillStyle = '#0f380f';
+  ctx.font = 'bold 36px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('🌱 タネカード 🌱', 240, 90);
+
+  // emoji
+  ctx.font = '120px serif';
+  ctx.fillText(selectedKodomo ? selectedKodomo.emoji : '🌿', 240, 260);
+
+  // name
+  ctx.fillStyle = '#0f380f';
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText(selectedKodomo ? selectedKodomo.name + 'より' : '', 240, 340);
+
+  // message
+  const msg = document.getElementById('card-msg').innerText;
+  ctx.font = '20px monospace';
+  ctx.fillStyle = '#306230';
+  const lines = msg.split('\n');
+  lines.forEach((line, i) => {
+    ctx.fillText(line, 240, 400 + i * 32);
+  });
+
+  // footer
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#306230';
+  ctx.fillText('木木木展', 240, 590);
+
+  const link = document.createElement('a');
+  link.download = `tane-card-${selectedKodomo?.id || 'card'}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// Enter key for voice input
+document.getElementById('voice-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doAction('voice');
+});
+</script>
+</body>
+</html>
