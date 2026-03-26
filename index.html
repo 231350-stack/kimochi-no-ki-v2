@@ -300,10 +300,11 @@ body{
   position:fixed;z-index:200;
   background:rgba(255,249,224,.96);
   border:2px solid rgba(0,0,0,.2);
-  border-radius:12px;padding:.5rem 1.1rem;
+  border-radius:12px;padding:.6rem 1.1rem;
   font-family:'Zen Maru Gothic',sans-serif;
   font-size:.85rem;color:var(--ink);
-  pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;
+  pointer-events:none;opacity:0;transition:opacity .2s;
+  white-space:normal;max-width:200px;line-height:1.55;
   box-shadow:3px 4px 0 rgba(0,0,0,.1);
 }
 
@@ -523,7 +524,15 @@ const CFG = {
   API_KEY: '',
   ADMIN_CODE: '0831',
   MAX_TREES: 120,
+  BIN_ID: '69c52d5eaa77b81da92049dc',
+  BIN_KEY: '$2a$10$qf1KVXXeeN6LW3WHqCM37ezdUPLGJPcjbv5IrYLCOfk93WBoCbLyq',
 };
+
+function getUserId(){
+  let id=localStorage.getItem('taju_uid');
+  if(!id){ id=Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('taju_uid',id); }
+  return id;
+}
 
 // ══════════════════════════════════════
 // DATA
@@ -590,18 +599,29 @@ let forestLayout = [];
 let seedAnimStarted = false;
 
 // ══════════════════════════════════════
-// STORAGE
+// STORAGE (JSONBin.io)
 // ══════════════════════════════════════
-function loadTrees(){ try{return JSON.parse(localStorage.getItem('taju_trees')||'[]');}catch{return[];} }
-function saveTrees(t){ localStorage.setItem('taju_trees',JSON.stringify(t)); }
-function addTree(tree){
-  const ts=loadTrees();
-  ts.push({...tree,ts:Date.now()});
-  if(ts.length>CFG.MAX_TREES) ts.shift();
-  saveTrees(ts);
+const _BIN_URL=`https://api.jsonbin.io/v3/b/${CFG.BIN_ID}`;
+const _BIN_HDR={'Content-Type':'application/json','X-Master-Key':CFG.BIN_KEY};
+
+async function loadTrees(){
+  try{
+    const r=await fetch(_BIN_URL,{headers:{'X-Master-Key':CFG.BIN_KEY}});
+    const j=await r.json();
+    return j.record?.trees||[];
+  }catch{ return []; }
 }
-function deleteTree(i){ const ts=loadTrees(); ts.splice(i,1); saveTrees(ts); }
-function clearTrees(){ localStorage.removeItem('taju_trees'); }
+async function saveTrees(trees){
+  await fetch(_BIN_URL,{method:'PUT',headers:_BIN_HDR,body:JSON.stringify({trees})});
+}
+async function addTree(tree){
+  const ts=await loadTrees();
+  ts.push({...tree,ts:Date.now(),uid:getUserId()});
+  if(ts.length>CFG.MAX_TREES) ts.shift();
+  await saveTrees(ts);
+}
+async function deleteTree(i){ const ts=await loadTrees(); ts.splice(i,1); await saveTrees(ts); }
+async function clearTrees(){ await saveTrees([]); }
 
 // ══════════════════════════════════════
 // NAVIGATION
@@ -1230,19 +1250,26 @@ async function startGrow(){
 // ══════════════════════════════════════
 // RESULT
 // ══════════════════════════════════════
-function showResult(){
+async function showResult(){
   go('s-result');
   const finalName=S.treeName||TD.treeName;
   S.treeName=finalName;
   const nameEl=document.getElementById('rName');
   nameEl.value=finalName;
+  document.getElementById('rCount').textContent='保存中…';
+  await addTree({shape:S.shape.id,color:S.color.h,name:finalName,ono:S.onos.map(o=>o.w).join('・'),msg:S.message});
+  const allTs=await loadTrees();
+  document.getElementById('rCount').textContent=`${allTs.length}本`;
+  let nameTimer;
   nameEl.oninput=()=>{
     S.treeName=nameEl.value||finalName;
-    const ts=loadTrees();
-    if(ts.length>0){ts[ts.length-1].name=S.treeName;saveTrees(ts);}
+    clearTimeout(nameTimer);
+    nameTimer=setTimeout(async()=>{
+      const ts=await loadTrees();
+      const mine=ts.find(t=>t.uid===getUserId());
+      if(mine){ mine.name=S.treeName; await saveTrees(ts); }
+    },800);
   };
-  addTree({shape:S.shape.id,color:S.color.h,name:finalName,ono:S.onos.map(o=>o.w).join('・'),msg:S.message});
-  document.getElementById('rCount').textContent=`${loadTrees().length}本`;
 
   // 揺れアニメーション（ゆっくり）
   setTimeout(()=>{
@@ -1392,8 +1419,9 @@ function downloadCard(){
 // ══════════════════════════════════════
 // FOREST
 // ══════════════════════════════════════
-function runForest(){
-  const saved=loadTrees();
+async function runForest(){
+  document.getElementById('fCount').textContent='森を読み込み中…';
+  const saved=await loadTrees();
   const all=[...saved,...DEFAULTS].slice(0,45);
   document.getElementById('fCount').textContent=`${all.length}本の木が育っています`;
 
@@ -1413,8 +1441,8 @@ function runForest(){
     return {tree,bx,by,tH,lR,i};
   });
 
-  const savedLen=saved.length;
-  const myI=savedLen>0?savedLen-1:-1;
+  const myUid=getUserId();
+  const myI=all.findIndex(t=>t.uid===myUid);
 
   const PLANT_DELAY=350;
   const GROW_DURATION=2200;
@@ -1535,11 +1563,15 @@ function runForest(){
     });
     if(closest&&minD<60){
       const tip=document.getElementById('fTooltip');
-      tip.textContent=closest.tree.name+(closest.tree.ono?` (${closest.tree.ono})`:'');
-      tip.style.left=e.clientX+'px'; tip.style.top=(e.clientY-48)+'px';
+      const tr=closest.tree;
+      let html=`<strong>${tr.name}</strong>`;
+      if(tr.ono) html+=`<br><span style="font-size:.78rem;opacity:.8">${tr.ono}</span>`;
+      if(tr.msg) html+=`<br><span style="font-size:.75rem;opacity:.7;font-style:italic">${tr.msg}</span>`;
+      tip.innerHTML=html;
+      tip.style.left=e.clientX+'px'; tip.style.top=(e.clientY-72)+'px';
       tip.style.opacity='1';
       clearTimeout(tip._t);
-      tip._t=setTimeout(()=>tip.style.opacity='0',2200);
+      tip._t=setTimeout(()=>tip.style.opacity='0',3000);
     }
   };
 }
@@ -1548,10 +1580,11 @@ function runForest(){
 // ADMIN
 // ══════════════════════════════════════
 function showAdmin(){ go('s-admin'); renderAdminList(); }
-function renderAdminList(){
-  const trees=loadTrees();
-  document.getElementById('adminStats').textContent=`${trees.length}本`;
+async function renderAdminList(){
   const list=document.getElementById('adminList');
+  list.innerHTML='<p style="text-align:center;padding:2rem;font-size:.85rem;color:#888">読み込み中…</p>';
+  const trees=await loadTrees();
+  document.getElementById('adminStats').textContent=`${trees.length}本`;
   list.innerHTML='';
   if(trees.length===0){
     list.innerHTML='<p style="color:var(--c4);text-align:center;padding:2rem;font-size:.85rem;">木はまだありません</p>';
@@ -1567,11 +1600,11 @@ function renderAdminList(){
     meta.textContent=`${tree.ono||'—'}　${tree.ts?new Date(tree.ts).toLocaleString('ja-JP'):'—'}`;
     info.append(name,meta);
     const btn=document.createElement('button'); btn.className='btn-del'; btn.textContent='削除';
-    btn.onclick=()=>{ deleteTree(i); renderAdminList(); };
+    btn.onclick=async()=>{ btn.disabled=true; btn.textContent='削除中…'; await deleteTree(i); renderAdminList(); };
     item.append(dot,info,btn); list.appendChild(item);
   });
 }
-function clearAllTrees(){ clearTrees(); renderAdminList(); }
+async function clearAllTrees(){ await clearTrees(); renderAdminList(); }
 
 // ══════════════════════════════════════
 // TITLE BG
